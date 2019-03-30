@@ -3,7 +3,7 @@
 #include <WiFiNINA.h>
 
 #define UP 1
-#define DOWN 2
+#define DOWN 0
 
 // Initialise WiFi connection
 char ssid[] = "SSID";
@@ -34,6 +34,9 @@ void playsound(int sound);
 
 // variable to tell if running functions for the first time
 int startup = 1;
+
+// variable to track previous subscriber count to see if there is increase / decrease
+int prev_sub_number;
 
 void setup() {
   // For debugging
@@ -76,7 +79,7 @@ void setup() {
   // Set up display
   lcd.clear();
   lcd.setCursor(1,0);
-  lcd.print("Bombastic Subs");
+  lcd.print("XXXXXX Subs");
   lcd.setCursor(3,1);
   lcd.print("Loading...");
 
@@ -88,8 +91,8 @@ void loop() {
   int sub_number;
   String sub_string;
 
-  // define a previous sub counter to track change
-  int prev_sub_number = sub_number;
+  // previous sub counter to track change
+  prev_sub_number = sub_number;
 
   // Call function to return sub count
   getsubcount(&sub_number, &sub_string);
@@ -163,7 +166,7 @@ void printsubcount(int difference, String sub_string) {
   if (startup == 1) {
     lcd.clear();
     lcd.setCursor(1,0);
-    lcd.print("Bombastic Subs");
+    lcd.print("XXXXXXX Subs");
     startup = 0;
 
     lcd.setCursor(3,1);
@@ -196,14 +199,12 @@ void printsubcount(int difference, String sub_string) {
 void playsound(int sound) {
 
   // if subs increase, play happy sound
+  // if subs decrease, play sad sound :(
   if (sound == UP) {
     tone(8,1975,200);
     delay(200);
     tone(8,2637,400);
-  }
-
-  // if subs decrease, play sad sound :(
-  if (sound == DOWN) {
+  } else {
     tone(8,2637,200);
     delay(200);
     tone(8,1975,400);
