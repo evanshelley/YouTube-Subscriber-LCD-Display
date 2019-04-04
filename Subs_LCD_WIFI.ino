@@ -38,6 +38,11 @@ int startup = 1;
 // variable to track previous subscriber count to see if there is increase / decrease
 int prev_sub_number;
 
+/*
+  Pre much everything above this could go ina  header file, showing what the constants are and what functions are defined.
+  Another header could be used for your secret info like WIFI credentials and an error on not finding this credentials file
+*/
+
 void setup() {
   // For debugging
   Serial.begin(9600);
@@ -119,13 +124,20 @@ void getsubcount(int *sub_number, String *sub_string) {
   }
   
   // Wait 10 seconds for data to be received
+  /*
+    This is a terrible idea, if your connection halts or is slow then this code dies; you should check for a HTTP response from the api.
+    If this is not possible then make the delay a constant in your header file.
+  */
   delay(10000);
 
   // Buffer for incoming data
   char data;
   
   // Receive and parse data
-   if (client.available()) {
+  /*
+    If this fails, should add an else conditional to log some info on what happened, always utilise your else conditionals
+  */
+  if (client.available()) {
     // loop until desired data is received (has '>' before it)
     while ((client.read()) != '>') {
     }
@@ -133,27 +145,27 @@ void getsubcount(int *sub_number, String *sub_string) {
     // string that will have sub count in format "XXXXXXXXX" for converting to int
     String subsnocomma;
 
-    // read in first character of desired data
-    data = (client.read());
-
     // turn data into strings until all desired data is received (has '<' after it)
+    data = (client.read());
     while (data != '<') {
-      // create strings, appending next char data to the end of each one until complete, excluding ',' for subsnocomma
       *sub_string += data;
-      
       if (data != ',') {
         subsnocomma += data;
       }
-
-      // read in next character and repeat
       data = client.read();
     }
 
     // create sub_number int
+    /*
+      If the below function fails it returns zero, be weary of using library functions, if you want to defend agains this case do it after the function call
+    */
     *sub_number = subsnocomma.toInt();
   }
 
   // read through remaining data until complete
+  /*
+    Do we need to read through rest of the data? Seems like a waste, could you not jsut dump the rest?
+  */
   while (client.available()) {
     data = client.read();
   }
@@ -167,29 +179,26 @@ void printsubcount(int difference, String sub_string) {
     lcd.clear();
     lcd.setCursor(1,0);
     lcd.print("XXXXXXX Subs");
-    startup = 0;
-
     lcd.setCursor(3,1);
     lcd.print(sub_string);
+    startup = 0;
     return;
   }
 
   // if gained subscriber(s), print "+X" for X amount gained
+  // if lost subscriber(s), print "-X" for X amount lost
   if (difference > 0) {
     lcd.setCursor(12,1);
     lcd.print("+");
     lcd.setCursor(13,1);
     lcd.print(difference);
     playsound(UP);
-  }
-
-  // if lost subscriber(s), print "-X" for X amount lost
-  if (difference < 0) {
+  } else {
     lcd.setCursor(12,1);
     lcd.print(difference);
     playsound(DOWN);
   }
-  
+
   // update subcount on LCD
   lcd.setCursor(3,1);
   lcd.print(sub_string);
@@ -200,6 +209,9 @@ void playsound(int sound) {
 
   // if subs increase, play happy sound
   // if subs decrease, play sad sound :(
+  /*
+    Use constant varaibles for delay times and probably also for tone notes
+  */
   if (sound == UP) {
     tone(8,1975,200);
     delay(200);
