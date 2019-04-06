@@ -2,41 +2,15 @@
 #include <SPI.h>
 #include <WiFiNINA.h>
 
-#define UP 1
-#define DOWN 0
+// Header file containing various initialisations and declarations
+#include "Subs_Declarations.h"
 
-// Initialise WiFi connection
-char ssid[] = "SSID";
-char pass[] = "PASSWORD";
-int status = WL_IDLE_STATUS;
+// Header file containing declarations of char ssid[] and char pass[] used for WiFi login
+#include "WiFi_Login.h"
 
-// IP address for api.thingspeak.com
-IPAddress server(18,214,44,70);
+// Header file containing API key in form of String key = "GET /apps/thinghttp/send_request?api_key=XXXXXXXXXXXXXX"
+#include "API_Key.h"
 
-// Initialise library
-WiFiClient client;
-
-// Initialise LCD
-const int rs = 7, en = 6, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
-
-// Piezo on pin 8
-const int speaker = 8;
-
-// Function getsubcount handles sending HTML request, receiving and parsing desired data
-void getsubcount(int *sub_number, String *sub_string);
-
-// Function printsubcount handles updating the LCD display
-void printsubcount(int difference, String sub_string);
-
-// Function playsound plays sound indicating if subcount went up or down, indicated by sound = UP or DOWN respectively
-void playsound(int sound);
-
-// variable to tell if running functions for the first time
-int startup = 1;
-
-// variable to track previous subscriber count to see if there is increase / decrease
-int prev_sub_number;
 
 void setup() {
   // For debugging
@@ -73,7 +47,7 @@ void setup() {
     lcd.clear();
     lcd.setCursor(2,0);
     lcd.print("Connected :)");
-    delay(2500);
+    delay(THREESECONDS);
   }
 
   // Set up display
@@ -91,7 +65,7 @@ void loop() {
   int sub_number;
   String sub_string;
 
-  // previous sub counter to track change
+  // define a previous sub counter to track change
   prev_sub_number = sub_number;
 
   // Call function to return sub count
@@ -106,20 +80,21 @@ void loop() {
   }
   
   // Wait 10 seconds
-  delay(10000);
+  delay(TENSECONDS);
 
 }
 
 void getsubcount(int *sub_number, String *sub_string) {
   
   // Connect to ThingSpeak, make request for data
-  if (client.connect(server,80)) {
-    client.println("GET /apps/thinghttp/send_request?api_key=XXXXXXXXXXXXXXXX");
+  if (client.connect(servername,80)) {
+    client.println(key);
     client.println();
   }
-  
-  // Wait 10 seconds for data to be received
-  delay(10000);
+
+  // Wait for client to become available
+  while (!(client.available())) {
+  }
 
   // Buffer for incoming data
   char data;
@@ -127,25 +102,20 @@ void getsubcount(int *sub_number, String *sub_string) {
   // Receive and parse data
    if (client.available()) {
     // loop until desired data is received (has '>' before it)
+    
     while ((client.read()) != '>') {
     }
 
     // string that will have sub count in format "XXXXXXXXX" for converting to int
     String subsnocomma;
 
-    // read in first character of desired data
-    data = (client.read());
-
     // turn data into strings until all desired data is received (has '<' after it)
+    data = (client.read());
     while (data != '<') {
-      // create strings, appending next char data to the end of each one until complete, excluding ',' for subsnocomma
       *sub_string += data;
-      
       if (data != ',') {
         subsnocomma += data;
       }
-
-      // read in next character and repeat
       data = client.read();
     }
 
@@ -153,9 +123,9 @@ void getsubcount(int *sub_number, String *sub_string) {
     *sub_number = subsnocomma.toInt();
   }
 
-  // read through remaining data until complete
+  // read through remaining data until all received
   while (client.available()) {
-    data = client.read();
+    client.read();
   }
   
 }
@@ -167,24 +137,22 @@ void printsubcount(int difference, String sub_string) {
     lcd.clear();
     lcd.setCursor(1,0);
     lcd.print("XXXXXXX Subs");
-    startup = 0;
-
     lcd.setCursor(3,1);
     lcd.print(sub_string);
+    playsound(UP);
+    startup = 0;
     return;
   }
 
   // if gained subscriber(s), print "+X" for X amount gained
+  // if lost subscriber(s), print "-X" for X amount lost
   if (difference > 0) {
     lcd.setCursor(12,1);
     lcd.print("+");
     lcd.setCursor(13,1);
     lcd.print(difference);
     playsound(UP);
-  }
-
-  // if lost subscriber(s), print "-X" for X amount lost
-  if (difference < 0) {
+  } else {
     lcd.setCursor(12,1);
     lcd.print(difference);
     playsound(DOWN);
@@ -201,13 +169,13 @@ void playsound(int sound) {
   // if subs increase, play happy sound
   // if subs decrease, play sad sound :(
   if (sound == UP) {
-    tone(8,1975,200);
-    delay(200);
-    tone(8,2637,400);
+    tone(speaker,B6,short_time);
+    delay(short_time);
+    tone(speaker,E7,long_time);
   } else {
-    tone(8,2637,200);
-    delay(200);
-    tone(8,1975,400);
+    tone(speaker,E7,short_time);
+    delay(short_time);
+    tone(speaker,B6,long_time);
   }
   
 }
